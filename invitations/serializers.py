@@ -14,7 +14,7 @@ class InvitationSerializer(serializers.ModelSerializer):
     
     def get_accept_url_demo(self, obj):
         frontend_url = settings.FRONTEND_URL
-        return f"{frontend_url}/{obj.token}"
+        return f"{frontend_url}/invite/{obj.token}"
 
     def create(self, validated_data):
         user = self.context['request'].user
