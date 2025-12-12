@@ -11,7 +11,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'dev-secret-key')
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*', "0.0.0.0", ".railway.app"]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -103,3 +103,4 @@ DEFAULT_FROM_EMAIL = 'no-reply@haibersama.com'
 
 # Static
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
