@@ -105,3 +105,5 @@ DEFAULT_FROM_EMAIL = 'no-reply@haibersama.com'
 # Static
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")

@@ -10,6 +10,7 @@ from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
 from uuid import uuid4
+from django.conf import settings
 
 class InvitationViewSet(viewsets.ModelViewSet):
     queryset = Invitation.objects.all().order_by('-created_at')
@@ -61,7 +62,8 @@ class InvitationViewSet(viewsets.ModelViewSet):
     #     email.send()
 
     def _send_invite_email(self, inv):
-        accept_url = f"http://localhost:3000/invite/{inv.token}"
+        frontend_url = settings.FRONTEND_URL
+        accept_url = f"{frontend_url}/invite/{inv.token}"
         message = f'You have been invited as {inv.role}. Click to accept: {accept_url}'
         # fallback to message. for demo only
         return message, accept_url
