@@ -1,7 +1,9 @@
+from email.message import EmailMessage
 from rest_framework import viewsets, status
 from .models import Invitation
 from .serializers import InvitationSerializer
 from rest_framework.decorators import action
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .permissions import IsAdminOrManager
 from django.utils import timezone
@@ -14,7 +16,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
     serializer_class = InvitationSerializer
 
     def get_permissions(self):
-        # list and retrieve allowed for authenticated users; create/resend/revoke restricted
+        # list and retrieve allowed for authenticated users
         if self.action in ['create','resend','revoke']:
             permission_classes = [IsAdminOrManager]
         else:
@@ -22,13 +24,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
         return [p() for p in permission_classes]
 
     def perform_create(self, serializer):
-        # create token and expiry
-        token = str(uuid4())
-        sender = self.request.user
-        inv = serializer.save(token=token, sender=sender)
-        # ensure expiry
-        inv.expires_at = inv.created_at + timezone.timedelta(hours=72)
-        inv.save()
+        inv = serializer.save() 
         self._send_invite_email(inv)
 
     @action(detail=True, methods=['post'])
@@ -51,9 +47,35 @@ class InvitationViewSet(viewsets.ModelViewSet):
         inv.save()
         return Response({'detail':'Revoked'})
 
+    # def _send_invite_email(self, inv):
+    #     accept_url = f"http://localhost:3000/invite?token={inv.token}"
+    #     subject = 'You are invited'
+    #     body = f'You have been invited as {inv.role}. Click to accept: {accept_url}'
+        
+    #     email = EmailMessage(
+    #         subject=subject,
+    #         body=body,
+    #         from_email=settings.DEFAULT_FROM_EMAIL,
+    #         to=[inv.email],
+    #     )
+    #     email.send()
+
     def _send_invite_email(self, inv):
-        # For development we use console email backend.
-        accept_url = f"http://localhost:3000/accept-invite?token={inv.token}"
-        subject = 'You are invited'
-        msg = f'You have been invited as {inv.role}. Click to accept: {accept_url}'
-        send_mail(subject, msg, settings.DEFAULT_FROM_EMAIL, [inv.email])
+        accept_url = f"http://localhost:3000/invite/{inv.token}"
+        message = f'You have been invited as {inv.role}. Click to accept: {accept_url}'
+        # fallback to message. for demo only
+        return message, accept_url
+
+@api_view(['GET'])
+def validate_invitation(request):
+    token = request.query_params.get('token')
+    if not token:
+        return Response({'detail': 'Token is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        inv = Invitation.objects.get(token=token)
+        if inv.is_expired() or inv.used:
+            return Response({'detail': 'Token invalid or expired'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'email': inv.email, 'role': inv.role, 'token': inv.token})
+    except Invitation.DoesNotExist:
+        return Response({'detail': 'Token not found'}, status=status.HTTP_404_NOT_FOUND)
